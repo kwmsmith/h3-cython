@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name="h3-cy",
+    name="h3cy",
     version="0.0.1",
     description="Python bindings (via Cython) to the H3 hierarchical geospatial indexing library.",
     long_description=long_description,
@@ -13,7 +13,6 @@ setup(
     author="Kurt Smith",
     email="kwmsmith@gmail.com",
     packages=["h3cy"],
-    package_dir={"h3cy": "h3"},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
