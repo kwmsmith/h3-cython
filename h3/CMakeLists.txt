@@ -44,6 +44,8 @@ add_cython_target(_h3.pyx)
 add_library(_h3 MODULE ${_h3} ${LIB_SOURCE_FILES} ${CONFIGURED_API_HEADER})
 python_extension_module(_h3)
 
+set_property(TARGET _h3 PROPERTY C_STANDARD 99)
+
 find_library(M_LIB m)
 if(M_LIB)
     # target_link_libraries(_h3 PUBLIC ${M_LIB})
