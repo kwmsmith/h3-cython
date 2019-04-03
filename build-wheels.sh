@@ -12,6 +12,6 @@ for whl in wheelhouse/*.whl; do
 done
 
 for PYBIN in /opt/python/cp3{6,7}-*/bin; do
-    "${PYBIN}/pip" install h3cy --no-index -f /io/wheelhouse
+	"${PYBIN}/pip" install h3cy --no-index --find-links /io/wheelhouse
 done
 

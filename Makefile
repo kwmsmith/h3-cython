@@ -6,5 +6,12 @@ darwin:
 linux:
 	docker run --rm -v `pwd`:/io ${DOCKER_IMAGE} /io/build-wheels.sh 
 
+local-install:
+	pip install h3cy --ignore-installed --no-index --find-links ./dist
+.PHONY: local-install
+
+test: local-install
+	pytest test/
+
 clean-all:
 	-rm -r _skbuild CMakeFiles CMakeCache.txt
