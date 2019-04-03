@@ -33,7 +33,14 @@ cdef extern from "h3api.h":
     void kRingDistances(H3Index, int, H3Index*, int*)
     int hexRange(H3Index, int, H3Index*)
     int hexRangeDistances(H3Index, int, H3Index*, int*)
-
+    int hexRanges(H3Index*, int, int, H3Index*)
+    int hexRing(H3Index, int, H3Index*)
+    int h3Line(H3Index, H3Index, H3Index*)
+    int h3LineSize(H3Index, H3Index)
+    int h3Distance(H3Index, H3Index)
+    H3Index h3ToParent(H3Index, int)
+    void h3ToChildren(H3Index, int, H3Index *)
+    int maxH3ToChildrenSize(H3Index, int)
 
 cdef int _check_res(int res) except -1:
     if not 0 <= res <= MAX_RES:
@@ -141,6 +148,18 @@ cpdef bint h3_is_pentagon(h3_address):
     return h3IsPentagon(string_to_h3(h3_address))
 
 
+cdef _hexagon_c_array_to_list(H3Index *h3_addresses, int array_len):
+    cdef:
+        out = []
+        int i
+        H3Index h3_address
+    for i in range(array_len):
+        h3_address = h3_addresses[i]
+        if h3_address != 0:
+            out.append(h3_to_string(h3_address))
+    return out
+
+
 cdef _hexagon_c_array_to_set(H3Index *h3_addresses, int array_len):
     cdef set s = set()
     cdef int i
@@ -223,48 +242,208 @@ def hex_range(h3_address, int ring_size):
             stdlib.free(kring_array)
 
 
-# def hex_range_distances(h3_address, int ring_size):
-#     """
-#     Get K-Rings for a given hexagon properly split by ring,
-#     aborting if a pentagon is reached
-#     """
-#     cdef:
-#         int i, array_len, success
-#         int *distance_array
-#         H3Index *kring_array
-#         list out
-#     if ring_size < 0:
-#         raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
-#     try:
-#         array_len = maxKringSize(ring_size)
-#         kring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
-#         if not kring_array:
-#             raise MemoryError()
-#         distance_array = <int *>stdlib.calloc(array_len, sizeof(int))
-#         if not distance_array:
-#             raise MemoryError()
-#         success = hexRangeDistances(
-#             string_to_h3(h3_address),
-#             ring_size,
-#             kring_array,
-#             distance_array,
-#         )
-#         if success != 0:
-#             raise ValueError('Specified hexagon range contains a pentagon')
-#         out = []
-#         for i in range(0, ring_size + 1):
-#             out.append(set())
-#         for i in range(0, array_len):
-#             ring_index = distance_array[i]
-#             out[ring_index].add(h3_to_string(kring_array[i]))
-#         return out
-#     finally:
-#         if kring_array:
-#             stdlib.free(kring_array)
-#         if distance_array:
-#             stdlib.free(distance_array)
+def hex_range_distances(h3_address, int ring_size):
+    """
+    Get K-Rings for a given hexagon properly split by ring,
+    aborting if a pentagon is reached
+    """
+    cdef:
+        int i, array_len, success
+        int *distance_array
+        H3Index *kring_array
+        list out
+    if ring_size < 0:
+        raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
+    try:
+        array_len = maxKringSize(ring_size)
+        kring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
+        if not kring_array:
+            raise MemoryError()
+        distance_array = <int *>stdlib.calloc(array_len, sizeof(int))
+        if not distance_array:
+            raise MemoryError()
+        success = hexRangeDistances(
+            string_to_h3(h3_address),
+            ring_size,
+            kring_array,
+            distance_array,
+        )
+        if success != 0:
+            raise ValueError('Specified hexagon range contains a pentagon')
+        out = []
+        for i in range(0, ring_size + 1):
+            out.append(set())
+        for i in range(0, array_len):
+            ring_index = distance_array[i]
+            out[ring_index].add(h3_to_string(kring_array[i]))
+        return out
+    finally:
+        if kring_array:
+            stdlib.free(kring_array)
+        if distance_array:
+            stdlib.free(distance_array)
 
 
+def hex_ranges(h3_address_list, int ring_size):
+    """
+    Get K-Rings for all hexagons properly split by ring,
+    aborting if a pentagon is reached
+    """
+    cdef:
+        int num_hexagons = len(h3_address_list)
+        int array_len, i, ring_index, ring_end, range_size, success
+        H3Index *hex_array,
+        H3Index *kring_array,
+        dict out
+        list hex_range_list
+
+    if ring_size < 0:
+        raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
+
+    try:
+
+        array_len = num_hexagons * maxKringSize(ring_size)
+
+        kring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
+        if not kring_array:
+            raise MemoryError()
+
+        hex_array = <H3Index *>stdlib.calloc(num_hexagons, sizeof(H3Index))
+        if not hex_array:
+            raise MemoryError()
+
+        for i in range(num_hexagons):
+            hex_array[i] = string_to_h3(h3_address_list[i])
+
+        success = hexRanges(
+            hex_array,
+            num_hexagons,
+            ring_size,
+            kring_array,
+        )
+
+        if success != 0:
+            raise ValueError(
+                'One of the specified hexagon ranges contains a pentagon')
+
+        out = {}
+        for i in range(0, num_hexagons):
+
+            h3_address = h3_address_list[i]
+            hex_range_list = []
+            out[h3_address] = hex_range_list
+
+            for j in range(0, ring_size + 1):
+                hex_range_list.append(set())
+
+            ring_index = 0
+            ring_end = 0
+            range_size = int(array_len / num_hexagons)
+
+            for j in range(0, range_size):
+                if j > ring_end:
+                    ring_index = ring_index + 1
+                    ring_end = ring_end + 6 * ring_index
+                # hexRanges doesn't return distance array
+                hex_range_list[ring_index].add(
+                    h3_to_string(kring_array[i * range_size + j]))
+
+        return out
+
+    finally:
+        if kring_array:
+            stdlib.free(kring_array)
+        if hex_array:
+            stdlib.free(hex_array)
+
+
+def hex_ring(h3_address, int ring_size):
+    """
+    Get a hexagon ring for a given hexagon.
+    Returns individual rings, unlike `k_ring`.
+
+    If a pentagon is reachable, falls back to a
+    MUCH slower form based on `k_ring`.
+    """
+
+    # This technically should be defined in the C code,
+    # but this is much faster
+    cdef:
+        int array_len = 6 * ring_size
+        int success
+        H3Index *hex_ring_array
+
+    try:
+        hex_ring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
+        if not hex_ring_array:
+            raise MemoryError()
+        success = hexRing(string_to_h3(h3_address), ring_size, hex_ring_array)
+        if success != 0:
+            raise Exception(
+                'Failed to get hexagon ring for pentagon {}'.format(h3_address))
+
+        return _hexagon_c_array_to_set(hex_ring_array, array_len)
+
+    finally:
+        if hex_ring_array:
+            stdlib.free(hex_ring_array)
+
+
+def h3_line(start, end):
+    cdef:
+        int line_size
+        H3Index *line
+
+    try:
+        line_size = h3LineSize(string_to_h3(start), string_to_h3(end))
+        line = <H3Index *>stdlib.calloc(line_size, sizeof(H3Index))
+        if not line:
+            raise MemoryError()
+        success = h3Line(string_to_h3(start), string_to_h3(end), line)
+        if success != 0:
+            raise Exception(
+                f"Unable to find line between {start} and {end}"
+            )
+        return _hexagon_c_array_to_list(line, line_size)
+
+    finally:
+        if line:
+            stdlib.free(line)
+
+
+def h3_distance(h3_address_origin, h3_address_h3):
+    return h3Distance(
+        string_to_h3(h3_address_origin),
+        string_to_h3(h3_address_h3)
+    )
+
+
+def h3_to_parent(h3_address, int res):
+    return h3_to_string(
+        h3ToParent(
+            string_to_h3(h3_address),
+            res
+        )
+    )
+
+
+def h3_to_children(h3_address, int res):
+    cdef:
+        H3Index h3_index = string_to_h3(h3_address)
+        int max_children
+
+    if res < 0:
+        raise ValueError(f"res must be >= 0, given {res}")
+    try:
+        max_children = maxH3ToChildrenSize(h3_index, res)
+        children_array = <H3Index *>stdlib.calloc(max_children, sizeof(H3Index))
+        if not children_array:
+            raise MemoryError()
+        h3ToChildren(h3_index, res, children_array)
+        return _hexagon_c_array_to_set(children_array, max_children)
+    finally:
+        if children_array:
+            stdlib.free(children_array)
 
 # def polyfill(geo_json, res, geo_json_conformant=False):
 #     """
