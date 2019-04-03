@@ -5,3 +5,6 @@ darwin:
 
 linux:
 	docker run --rm -v `pwd`:/io ${DOCKER_IMAGE} /io/build-wheels.sh 
+
+clean-all:
+	-rm -r _skbuild CMakeFiles CMakeCache.txt
