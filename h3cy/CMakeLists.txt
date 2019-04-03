@@ -39,7 +39,7 @@ set(UNCONFIGURED_API_HEADER h3lib/include/h3api.h.in)
 set(CONFIGURED_API_HEADER h3lib/include/h3api.h)
 configure_file(${UNCONFIGURED_API_HEADER} ${CONFIGURED_API_HEADER})
 
-add_cython_target(_h3.pyx)
+add_cython_target(_h3)
 # add_library(_h3 MODULE ${_h3})
 add_library(_h3 MODULE ${_h3} ${LIB_SOURCE_FILES} ${CONFIGURED_API_HEADER})
 python_extension_module(_h3)
@@ -61,4 +61,4 @@ target_include_directories(_h3 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/h3lib/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/h3lib/include>)
 
-install(TARGETS _h3 LIBRARY DESTINATION h3)
+install(TARGETS _h3 LIBRARY DESTINATION h3cy)
