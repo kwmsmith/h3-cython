@@ -1,1 +1,1 @@
-from h3._h3 import *
+import h3cy._h3 as h3

@@ -1,3 +1,5 @@
+CMakeCache.txt
+CMakeFiles
 *.egg-info
 _skbuild
 __pycache__
