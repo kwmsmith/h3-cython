@@ -31,6 +31,8 @@ cdef extern from "h3api.h":
     void kRing(H3Index, int, H3Index*)
     int maxKringSize(int)
     void kRingDistances(H3Index, int, H3Index*, int*)
+    int hexRange(H3Index, int, H3Index*)
+    int hexRangeDistances(H3Index, int, H3Index*, int*)
 
 
 cdef int _check_res(int res) except -1:
@@ -155,35 +157,131 @@ def k_ring(h3_address, int ring_size):
     if ring_size < 0:
         raise ValueError(f"ring_size must be >= 0, given {ring_size}")
     cdef int array_len = maxKringSize(ring_size)
-    cdef H3Index *kring_array = <H3Index *> stdlib.malloc(array_len * sizeof(H3Index))
+    cdef H3Index *kring_array = <H3Index *> stdlib.calloc(array_len, sizeof(H3Index))
     if not kring_array:
         raise MemoryError()
     try:
         kRing(string_to_h3(h3_address), ring_size, kring_array)
         return _hexagon_c_array_to_set(kring_array, array_len)
     finally:
-        stdlib.free(kring_array)
+        if kring_array:
+            stdlib.free(kring_array)
 
 
-# def k_ring_distances(h3_address, int ring_size):
-#     """Get K-Rings for a given hexagon properly split by ring"""
+def k_ring_distances(h3_address, int ring_size):
+    """Get K-Rings for a given hexagon properly split by ring"""
+    cdef:
+        int array_len, i
+        int *distance_array
+        H3Index *kring_array
+        list out
+    if ring_size < 0:
+        raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
+    try:
+        array_len = maxKringSize(ring_size)
+        kring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
+        if not kring_array:
+            raise MemoryError()
+        distance_array = <int *>stdlib.calloc(array_len, sizeof(int))
+        if not distance_array:
+            raise MemoryError()
+        kRingDistances(
+            string_to_h3(h3_address),
+            ring_size,
+            kring_array,
+            distance_array,
+        )
+        out = []
+        for i in range(0, ring_size + 1):
+            out.append(set())
+        for i in range(0, array_len):
+            ring_index = distance_array[i]
+            out[ring_index].add(h3_to_string(kring_array[i]))
+        return out
+    finally:
+        if kring_array:
+            stdlib.free(kring_array)
+        if distance_array:
+            stdlib.free(distance_array)
+
+
+def hex_range(h3_address, int ring_size):
+    cdef:
+        int array_len
+        H3Index *kring_array
+    try:
+        array_len = maxKringSize(ring_size)
+        kring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
+        if not kring_array:
+            raise MemoryError()
+        success = hexRange(string_to_h3(h3_address), ring_size, kring_array)
+        if success != 0:
+            raise ValueError('Specified hexagon range contains a pentagon')
+        return _hexagon_c_array_to_set(kring_array, array_len)
+    finally:
+        if kring_array:
+            stdlib.free(kring_array)
+
+
+# def hex_range_distances(h3_address, int ring_size):
+#     """
+#     Get K-Rings for a given hexagon properly split by ring,
+#     aborting if a pentagon is reached
+#     """
+#     cdef:
+#         int i, array_len, success
+#         int *distance_array
+#         H3Index *kring_array
+#         list out
 #     if ring_size < 0:
-#         raise ValueError(f"ring_size must be >= 0, given {ring_size}")
-#     cdef int array_len = maxKringSize(ring_size)
-#     cdef H3Index *kring_array = <H3Index *> stdlib.malloc(array_len * sizeof(H3Index))
-#     if not kring_array:
-#         raise MemoryError()
-#     KringArray = c_long * array_len
-#     DistanceArray = c_int * array_len
-#     # Initializes to zeroes by default, don't need to force
-#     krings = KringArray()
-#     distances = DistanceArray()
-#     libh3.kRingDistances(
-#         string_to_h3(h3_address), ring_size, krings, distances)
-#     out = []
-#     for i in range(0, ring_size + 1):
-#         out.append(set([]))
-#     for i in range(0, array_len):
-#         ring_index = distances[i]
-#         out[ring_index].add(h3_to_string(krings[i]))
-#     return out
+#         raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
+#     try:
+#         array_len = maxKringSize(ring_size)
+#         kring_array = <H3Index *>stdlib.calloc(array_len, sizeof(H3Index))
+#         if not kring_array:
+#             raise MemoryError()
+#         distance_array = <int *>stdlib.calloc(array_len, sizeof(int))
+#         if not distance_array:
+#             raise MemoryError()
+#         success = hexRangeDistances(
+#             string_to_h3(h3_address),
+#             ring_size,
+#             kring_array,
+#             distance_array,
+#         )
+#         if success != 0:
+#             raise ValueError('Specified hexagon range contains a pentagon')
+#         out = []
+#         for i in range(0, ring_size + 1):
+#             out.append(set())
+#         for i in range(0, array_len):
+#             ring_index = distance_array[i]
+#             out[ring_index].add(h3_to_string(kring_array[i]))
+#         return out
+#     finally:
+#         if kring_array:
+#             stdlib.free(kring_array)
+#         if distance_array:
+#             stdlib.free(distance_array)
+
+
+
+# def polyfill(geo_json, res, geo_json_conformant=False):
+#     """
+#     Get hexagons for a given GeoJSON region
+
+#     :param geo_json dict: A GeoJSON dictionary
+#     :param res int: The hexagon resolution to use (0-15)
+#     :param geo_json_conformant bool: Determines (lat, lng) vs (lng, lat)
+#         ordering Default is false, which is (lat, lng) ordering, violating
+#         the spec http://geojson.org/geojson-spec.html#id2 which is (lng, lat)
+
+#     :returns: Set of hex addresses
+#     """
+#     geo_json_lite = _geo_json_to_geo_json_lite(geo_json, geo_json_conformant)
+#     array_len = libh3.maxPolyfillSize(byref(geo_json_lite), res)
+#     HexagonArray = c_long * array_len
+#     hexagons = HexagonArray()
+#     libh3.polyfill(byref(geo_json_lite), res, hexagons)
+#     return hexagon_c_array_to_set(hexagons)
+
