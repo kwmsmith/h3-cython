@@ -1,0 +1,41 @@
+from libc cimport stdlib
+from libc cimport stdint
+
+include "_h3.pxi"
+
+cdef extern from "h3api.h":
+
+    ctypedef stdint.uint64_t H3Index
+
+    ctypedef struct GeoCoord:
+        double lat  # latitude in radians
+        double lon  # longitude in radians
+
+    ctypedef struct GeoBoundary:
+        int numVerts
+        GeoCoord verts[MAX_CELL_BNDRY_VERTS]
+
+    H3Index geoToH3(const GeoCoord *, int)
+    void h3ToGeo(H3Index, GeoCoord *)
+    void h3ToGeoBoundary(H3Index, GeoBoundary *)
+    double edgeLengthKm(int)
+    double degsToRads(double)
+    double radsToDegs(double)
+    int h3GetBaseCell(H3Index)
+    int h3IsValid(H3Index)
+    int h3IsResClassIII(H3Index)
+    int h3IsPentagon(H3Index)
+    void kRing(H3Index, int, H3Index*)
+    int maxKringSize(int)
+    void kRingDistances(H3Index, int, H3Index*, int*)
+    int hexRange(H3Index, int, H3Index*)
+    int hexRangeDistances(H3Index, int, H3Index*, int*)
+    int hexRanges(H3Index*, int, int, H3Index*)
+    int hexRing(H3Index, int, H3Index*)
+    int h3Line(H3Index, H3Index, H3Index*)
+    int h3LineSize(H3Index, H3Index)
+    int h3Distance(H3Index, H3Index)
+    H3Index h3ToParent(H3Index, int)
+    void h3ToChildren(H3Index, int, H3Index *)
+    int maxH3ToChildrenSize(H3Index, int)
+
