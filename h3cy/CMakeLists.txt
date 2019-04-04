@@ -1,5 +1,14 @@
 # TODO: Version stuff -- ensure version matches H3's version.
 
+macro(print_all_variables)
+    message(STATUS "print_all_variables------------------------------------------{")
+    get_cmake_property(_variableNames VARIABLES)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
+    message(STATUS "print_all_variables------------------------------------------}")
+endmacro()
+
 set(LIB_SOURCE_FILES
     h3lib/include/bbox.h
     h3lib/include/polygon.h
@@ -39,8 +48,10 @@ set(UNCONFIGURED_API_HEADER h3lib/include/h3api.h.in)
 set(CONFIGURED_API_HEADER h3lib/include/h3api.h)
 configure_file(${UNCONFIGURED_API_HEADER} ${CONFIGURED_API_HEADER})
 
-add_cython_target(_h3)
-# add_library(_h3 MODULE ${_h3})
+# NOTE: this must come before add_cython_target(), add_library(), etc...
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+add_cython_target(_h3 C PY3)
 add_library(_h3 MODULE ${_h3} ${LIB_SOURCE_FILES} ${CONFIGURED_API_HEADER})
 python_extension_module(_h3)
 
