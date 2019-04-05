@@ -13,5 +13,6 @@ done
 
 for PYBIN in /opt/python/cp3{6,7}-*/bin; do
 	"${PYBIN}/pip" install h3cy --no-index --find-links /io/wheelhouse
+    "${PYBIN}/pytest" --verbose --tb=line -s /io/test/
 done
 

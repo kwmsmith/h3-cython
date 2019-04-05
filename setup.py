@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="h3cy",
-    version="0.0.1",
+    version="0.0.2",
     description="Python bindings (via Cython) to the H3 hierarchical geospatial indexing library.",
     long_description=long_description,
     long_description_content_type="text/markdown",

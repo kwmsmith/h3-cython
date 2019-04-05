@@ -739,4 +739,3 @@ def get_res_zero_indexes():
     finally:
         if h3_addresses:
             stdlib.free(h3_addresses)
-
