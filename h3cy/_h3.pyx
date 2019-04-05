@@ -739,3 +739,97 @@ def get_res_zero_indexes():
     finally:
         if h3_addresses:
             stdlib.free(h3_addresses)
+
+
+def h3_set_to_multi_polygon(h3_addresses, geo_json=False):
+    """
+    Get the outlines of a set of H3 hexagons, returned in GeoJSON MultiPolygon
+    format (an array of polygons, each with an array of loops, each an array of
+    coordinates). Coordinates are returned as [lat, lng] pairs unless GeoJSON
+    is requested.
+
+    :param h3_addresses string[]: H3 addresses to get outlines for
+    :param geo_json bool: Whether to follow GeoJSON: [lng, lat], closed loops
+    :returns: MultiPolygon-style output.
+    """
+
+    cdef:
+        int address_count
+        h3api.H3Index *hexagon_array = NULL
+        h3api.LinkedGeoPolygon polygon = h3api.LinkedGeoPolygon(
+            NULL, NULL, NULL
+        )
+        h3api.LinkedGeoPolygon *polygon_ptr = NULL
+        h3api.LinkedGeoPolygon *original_polygon = NULL
+        h3api.LinkedGeoLoop *loop_ptr = NULL
+        list output
+        int lat_index, lng_index
+
+    # Early exit on empty input
+    if not h3_addresses:
+        return []
+
+    try:
+        # Set up input set
+        address_count = len(h3_addresses)
+        hexagon_array = <h3api.H3Index *>stdlib.calloc(
+            address_count, sizeof(h3api.H3Index)
+        )
+        if not hexagon_array:
+            raise MemoryError()
+        for i, address in enumerate(h3_addresses):
+            hexagon_array[i] = string_to_h3(address)
+
+        # Store a reference to the first polygon - that's the one we need for
+        # memory deallocation
+        original_polygon = &polygon
+        polygon_ptr = &polygon
+        h3api.h3SetToLinkedGeo(hexagon_array, address_count, &polygon)
+
+        # Loop through the linked structure, building the output
+        output = []
+        lat_index = 1 if geo_json else 0
+        lng_index = 0 if geo_json else 1
+
+        while polygon_ptr:
+            loops = []
+            output.append(loops)
+            # Follow ->first pointer
+            loop_ptr = polygon_ptr.first
+            while loop_ptr:
+
+                coords = []
+                loops.append(coords)
+                # Follow ->first pointer
+                coord_ptr = loop_ptr.first
+
+                while coord_ptr:
+
+                    pair = [None, None]
+                    coords.append(pair)
+                    pair[lat_index] = _mercator_lat(
+                        rads_to_degs(coord_ptr.vertex.lat)
+                    )
+                    pair[lng_index] = _mercator_lon(
+                        rads_to_degs(coord_ptr.vertex.lon)
+                    )
+                    # Follow ->next pointer
+                    coord_ptr = coord_ptr.next
+
+                if geo_json:
+                    # Close loop if GeoJSON is requested
+                    coords.append(coords[0])
+
+                # Follow ->next pointer
+                loop_ptr = loop_ptr.next
+
+            # Follow ->next pointer
+            polygon_ptr = polygon_ptr.next
+
+        # Clean up
+        h3api.destroyLinkedPolygon(original_polygon)
+        return output
+
+    finally:
+        if hexagon_array:
+            stdlib.free(hexagon_array)

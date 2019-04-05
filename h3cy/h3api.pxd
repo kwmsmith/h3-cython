@@ -24,6 +24,21 @@ cdef extern from "h3api.h":
         int numHoles
         Geofence *holes
 
+    ctypedef struct LinkedGeoCoord:
+        GeoCoord vertex
+        LinkedGeoCoord *next
+
+    ctypedef struct LinkedGeoLoop:
+        LinkedGeoCoord *first
+        LinkedGeoCoord *last
+        LinkedGeoLoop *next
+
+    ctypedef struct LinkedGeoPolygon:
+        LinkedGeoLoop *first
+        LinkedGeoLoop *last
+        LinkedGeoPolygon *next
+
+
     H3Index geoToH3(const GeoCoord *, int)
     void h3ToGeo(H3Index, GeoCoord *)
     void h3ToGeoBoundary(H3Index, GeoBoundary *)
@@ -59,3 +74,5 @@ cdef extern from "h3api.h":
     stdint.int64_t numHexagons(int)
     int res0IndexCount()
     void getRes0Indexes(H3Index *)
+    void h3SetToLinkedGeo(const H3Index*, const int, LinkedGeoPolygon*)
+    void destroyLinkedPolygon(LinkedGeoPolygon*)
