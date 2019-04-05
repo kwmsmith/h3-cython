@@ -15,6 +15,15 @@ cdef extern from "h3api.h":
         int numVerts
         GeoCoord verts[MAX_CELL_BNDRY_VERTS]
 
+    ctypedef struct Geofence:
+        int numVerts
+        GeoCoord *verts
+
+    ctypedef struct GeoPolygon:
+        Geofence geofence
+        int numHoles
+        Geofence *holes
+
     H3Index geoToH3(const GeoCoord *, int)
     void h3ToGeo(H3Index, GeoCoord *)
     void h3ToGeoBoundary(H3Index, GeoBoundary *)
@@ -38,4 +47,8 @@ cdef extern from "h3api.h":
     H3Index h3ToParent(H3Index, int)
     void h3ToChildren(H3Index, int, H3Index *)
     int maxH3ToChildrenSize(H3Index, int)
-
+    int compact(const H3Index *, H3Index *, const int)
+    int uncompact(const H3Index *, const int, H3Index *, const int, const int)
+    int maxUncompactSize(const H3Index *, const int, const int)
+    void polyfill(const GeoPolygon*, int, H3Index*)
+    int maxPolyfillSize(const GeoPolygon*, int)
