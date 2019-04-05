@@ -99,9 +99,6 @@ cpdef bint h3_is_valid(h3_address):
         return False
 
 
-cpdef bint h3_is_res_class_III(h3_address):
-    return h3api.h3IsResClassIII(string_to_h3(h3_address))
-
 cpdef bint h3_is_pentagon(h3_address):
     return h3api.h3IsPentagon(string_to_h3(h3_address))
 
@@ -833,3 +830,137 @@ def h3_set_to_multi_polygon(h3_addresses, geo_json=False):
     finally:
         if hexagon_array:
             stdlib.free(hexagon_array)
+
+
+def h3_indexes_are_neighbors(a, b):
+    return h3api.h3IndexesAreNeighbors(
+        string_to_h3(a), string_to_h3(b)
+    ) == 1
+
+
+def get_h3_unidirectional_edge(a, b):
+
+    cdef:
+        h3api.H3Index edge_int
+
+    edge_int = h3api.getH3UnidirectionalEdge(
+        string_to_h3(a),
+        string_to_h3(b),
+    )
+    if not edge_int:
+        raise ValueError(
+            'Provided H3Indexes are not hexagons or not neighbors'
+        )
+    return h3_to_string(edge_int)
+
+
+def h3_unidirectional_edge_is_valid(h3_address):
+    return bool(h3api.h3UnidirectionalEdgeIsValid(string_to_h3(h3_address)))
+
+
+def get_origin_h3_index_from_unidirectional_edge(h3_address):
+
+    cdef:
+        h3api.H3Index origin_int
+
+    origin_int = h3api.getOriginH3IndexFromUnidirectionalEdge(
+        string_to_h3(h3_address)
+    )
+    if origin_int == 0:
+        raise ValueError('Provided H3Index is not a Unidirectional Edge index')
+    return h3_to_string(origin_int)
+
+
+def get_destination_h3_index_from_unidirectional_edge(h3_address):
+
+    cdef:
+        h3api.H3Index destination_int
+
+    destination_int = h3api.getDestinationH3IndexFromUnidirectionalEdge(
+        string_to_h3(h3_address)
+    )
+    if destination_int == 0:
+        raise ValueError(
+            'Provided H3Index is not a Unidirectional Edge index'
+        )
+    return h3_to_string(destination_int)
+
+
+def get_h3_indexes_from_unidirectional_edge(h3_address):
+
+    cdef:
+        h3api.H3Index index_array[2]
+
+    index_array[0] = 0
+    index_array[1] = 0
+
+    h3api.getH3IndexesFromUnidirectionalEdge(
+        string_to_h3(h3_address), index_array
+    )
+    if index_array[0] == 0 or index_array[1] == 0:
+        raise ValueError(
+            'Provided H3Index is not a Unidirectional Edge index'
+        )
+    return (h3_to_string(index_array[0]), h3_to_string(index_array[1]))
+
+
+def get_h3_unidirectional_edges_from_hexagon(h3_address):
+    cdef:
+        int i, zero_count = 0
+        h3api.H3Index h3_int
+        h3api.H3Index index_array[6]
+
+    for i in range(6):
+        index_array[i] = 0
+
+    h3api.getH3UnidirectionalEdgesFromHexagon(
+        string_to_h3(h3_address), index_array
+    )
+    for i in range(6):
+        h3_int = index_array[i]
+        if h3_int == 0:
+            zero_count += 1
+    if zero_count > 1:
+        raise ValueError(
+            'Provided H3Index is not a Hexagon index'
+        )
+    return tuple(
+        h3_to_string(index_array[i])
+        for i in range(6)
+        if index_array[i] != 0
+    )
+
+
+def get_h3_unidirectional_edge_boundary(h3_address, geo_json=False):
+    """Compose an array of geo-coordinates that defines a hexagonal edge"""
+
+    cdef:
+        int i
+        h3api.GeoBoundary geo_boundary
+
+    h3api.getH3UnidirectionalEdgeBoundary(
+        string_to_h3(h3_address), &geo_boundary
+    )
+    out = []
+    for i in range(geo_boundary.numVerts):
+        if geo_json:
+            out.append([
+                _mercator_lon(rads_to_degs(geo_boundary.verts[i].lon)),
+                _mercator_lat(rads_to_degs(geo_boundary.verts[i].lat))
+            ])
+        else:
+            out.append([
+                _mercator_lat(rads_to_degs(geo_boundary.verts[i].lat)),
+                _mercator_lon(rads_to_degs(geo_boundary.verts[i].lon))
+            ])
+    if geo_json:
+        out.append(out[0])
+    return out
+
+
+cpdef bint h3_is_res_class_iii(h3_address):
+    return h3api.h3IsResClassIII(string_to_h3(h3_address)) == 1
+
+
+cpdef bint h3_is_res_class_III(h3_address):
+    return h3_is_res_class_iii(h3_address)
