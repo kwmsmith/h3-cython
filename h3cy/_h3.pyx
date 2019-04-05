@@ -131,17 +131,25 @@ cdef _hexagon_c_array_to_set(h3api.H3Index *h3_addresses, int array_len):
         if h3_address != 0:
             s.add(h3_to_string(h3_address))
     return s
-        
+
 
 def k_ring(h3_address, int ring_size):
     """Get K-Rings for a given hexagon"""
+    cdef:
+        int array_len
+        h3api.H3Index *kring_array = NULL
+
     if ring_size < 0:
         raise ValueError(f"ring_size must be >= 0, given {ring_size}")
-    cdef int array_len = h3api.maxKringSize(ring_size)
-    cdef h3api.H3Index *kring_array = <h3api.H3Index *> stdlib.calloc(array_len, sizeof(h3api.H3Index))
-    if not kring_array:
-        raise MemoryError()
+
     try:
+        array_len = h3api.maxKringSize(ring_size)
+        kring_array = <h3api.H3Index *> stdlib.calloc(
+            array_len,
+            sizeof(h3api.H3Index)
+        )
+        if not kring_array:
+            raise MemoryError()
         h3api.kRing(string_to_h3(h3_address), ring_size, kring_array)
         return _hexagon_c_array_to_set(kring_array, array_len)
     finally:
@@ -153,14 +161,17 @@ def k_ring_distances(h3_address, int ring_size):
     """Get K-Rings for a given hexagon properly split by ring"""
     cdef:
         int array_len, i
-        int *distance_array
-        h3api.H3Index *kring_array
+        int *distance_array = NULL
+        h3api.H3Index *kring_array = NULL
         list out
     if ring_size < 0:
         raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
     try:
         array_len = h3api.maxKringSize(ring_size)
-        kring_array = <h3api.H3Index *>stdlib.calloc(array_len, sizeof(h3api.H3Index))
+        kring_array = <h3api.H3Index *>stdlib.calloc(
+            array_len,
+            sizeof(h3api.H3Index)
+        )
         if not kring_array:
             raise MemoryError()
         distance_array = <int *>stdlib.calloc(array_len, sizeof(int))
@@ -189,13 +200,20 @@ def k_ring_distances(h3_address, int ring_size):
 def hex_range(h3_address, int ring_size):
     cdef:
         int array_len
-        h3api.H3Index *kring_array
+        h3api.H3Index *kring_array = NULL
     try:
         array_len = h3api.maxKringSize(ring_size)
-        kring_array = <h3api.H3Index *>stdlib.calloc(array_len, sizeof(h3api.H3Index))
+        kring_array = <h3api.H3Index *>stdlib.calloc(
+            array_len,
+            sizeof(h3api.H3Index)
+        )
         if not kring_array:
             raise MemoryError()
-        success = h3api.hexRange(string_to_h3(h3_address), ring_size, kring_array)
+        success = h3api.hexRange(
+            string_to_h3(h3_address),
+            ring_size,
+            kring_array
+        )
         if success != 0:
             raise ValueError('Specified hexagon range contains a pentagon')
         return _hexagon_c_array_to_set(kring_array, array_len)
@@ -211,14 +229,17 @@ def hex_range_distances(h3_address, int ring_size):
     """
     cdef:
         int i, array_len, success
-        int *distance_array
-        h3api.H3Index *kring_array
+        int *distance_array = NULL
+        h3api.H3Index *kring_array = NULL
         list out
     if ring_size < 0:
         raise ValueError(f"ring_size must be >= 0, given {ring_size}.")
     try:
         array_len = h3api.maxKringSize(ring_size)
-        kring_array = <h3api.H3Index *>stdlib.calloc(array_len, sizeof(h3api.H3Index))
+        kring_array = <h3api.H3Index *>stdlib.calloc(
+            array_len,
+            sizeof(h3api.H3Index)
+        )
         if not kring_array:
             raise MemoryError()
         distance_array = <int *>stdlib.calloc(array_len, sizeof(int))
@@ -254,8 +275,8 @@ def hex_ranges(h3_address_list, int ring_size):
     cdef:
         int num_hexagons = len(h3_address_list)
         int array_len, i, ring_index, ring_end, range_size, success
-        h3api.H3Index *hex_array,
-        h3api.H3Index *kring_array,
+        h3api.H3Index *hex_array = NULL
+        h3api.H3Index *kring_array = NULL
         dict out
         list hex_range_list
 
@@ -266,11 +287,17 @@ def hex_ranges(h3_address_list, int ring_size):
 
         array_len = num_hexagons * h3api.maxKringSize(ring_size)
 
-        kring_array = <h3api.H3Index *>stdlib.calloc(array_len, sizeof(h3api.H3Index))
+        kring_array = <h3api.H3Index *>stdlib.calloc(
+            array_len,
+            sizeof(h3api.H3Index)
+        )
         if not kring_array:
             raise MemoryError()
 
-        hex_array = <h3api.H3Index *>stdlib.calloc(num_hexagons, sizeof(h3api.H3Index))
+        hex_array = <h3api.H3Index *>stdlib.calloc(
+            num_hexagons,
+            sizeof(h3api.H3Index)
+        )
         if not hex_array:
             raise MemoryError()
 
@@ -333,16 +360,22 @@ def hex_ring(h3_address, int ring_size):
     cdef:
         int array_len = 6 * ring_size
         int success
-        h3api.H3Index *hex_ring_array
+        h3api.H3Index *hex_ring_array = NULL
 
     try:
-        hex_ring_array = <h3api.H3Index *>stdlib.calloc(array_len, sizeof(h3api.H3Index))
+        hex_ring_array = <h3api.H3Index *>stdlib.calloc(
+            array_len,
+            sizeof(h3api.H3Index)
+        )
         if not hex_ring_array:
             raise MemoryError()
-        success = h3api.hexRing(string_to_h3(h3_address), ring_size, hex_ring_array)
+        success = h3api.hexRing(
+            string_to_h3(h3_address), ring_size, hex_ring_array
+        )
         if success != 0:
             raise Exception(
-                'Failed to get hexagon ring for pentagon {}'.format(h3_address))
+                f'Failed to get hexagon ring for pentagon {h3_address}'
+            )
 
         return _hexagon_c_array_to_set(hex_ring_array, array_len)
 
@@ -354,7 +387,7 @@ def hex_ring(h3_address, int ring_size):
 def h3_line(start, end):
     cdef:
         int line_size
-        h3api.H3Index *line
+        h3api.H3Index *line = NULL
 
     try:
         line_size = h3api.h3LineSize(string_to_h3(start), string_to_h3(end))
@@ -394,11 +427,12 @@ def h3_to_children(h3_address, int res):
         h3api.H3Index h3_index = string_to_h3(h3_address)
         int max_children
 
-    if res < 0:
-        raise ValueError(f"res must be >= 0, given {res}")
+    res = _check_res(res)
     try:
         max_children = h3api.maxH3ToChildrenSize(h3_index, res)
-        children_array = <h3api.H3Index *>stdlib.calloc(max_children, sizeof(h3api.H3Index))
+        children_array = <h3api.H3Index *>stdlib.calloc(
+            max_children, sizeof(h3api.H3Index)
+        )
         if not children_array:
             raise MemoryError()
         h3api.h3ToChildren(h3_index, res, children_array)
@@ -407,22 +441,265 @@ def h3_to_children(h3_address, int res):
         if children_array:
             stdlib.free(children_array)
 
-# def polyfill(geo_json, res, geo_json_conformant=False):
-#     """
-#     Get hexagons for a given GeoJSON region
 
-#     :param geo_json dict: A GeoJSON dictionary
-#     :param res int: The hexagon resolution to use (0-15)
-#     :param geo_json_conformant bool: Determines (lat, lng) vs (lng, lat)
-#         ordering Default is false, which is (lat, lng) ordering, violating
-#         the spec http://geojson.org/geojson-spec.html#id2 which is (lng, lat)
+def compact(h3_addresses):
+    cdef:
+        int num_hexagons, i
+        h3api.H3Index *hex_set_array = NULL
+        h3api.H3Index *compacted_hex_set_array = NULL
 
-#     :returns: Set of hex addresses
-#     """
-#     geo_json_lite = _geo_json_to_geo_json_lite(geo_json, geo_json_conformant)
-#     array_len = libh3.maxPolyfillSize(byref(geo_json_lite), res)
-#     HexagonArray = c_long * array_len
-#     hexagons = HexagonArray()
-#     libh3.polyfill(byref(geo_json_lite), res, hexagons)
-#     return hexagon_c_array_to_set(hexagons)
+    if not h3_addresses:
+        return set()
 
+    try:
+        num_hexagons = len(h3_addresses)
+        hex_set_array = <h3api.H3Index *>stdlib.calloc(
+            num_hexagons,
+            sizeof(h3api.H3Index)
+        )
+        if not hex_set_array:
+            raise MemoryError()
+
+        compacted_hex_set_array = <h3api.H3Index *>stdlib.calloc(
+            num_hexagons,
+            sizeof(h3api.H3Index)
+        )
+        if not compacted_hex_set_array:
+            raise MemoryError()
+
+        for i, address in enumerate(h3_addresses):
+            hex_set_array[i] = int(address, 16)
+
+        ret_val = h3api.compact(
+            hex_set_array,
+            compacted_hex_set_array,
+            num_hexagons
+        )
+
+        if ret_val != 0:
+            raise Exception(
+                'Failed to compact, malformed input data (duplicate hexagons?)'
+            )
+
+        return _hexagon_c_array_to_set(compacted_hex_set_array, num_hexagons)
+
+    finally:
+        if hex_set_array:
+            stdlib.free(hex_set_array)
+        if compacted_hex_set_array:
+            stdlib.free(compacted_hex_set_array)
+
+
+def uncompact(h3_addresses, int res):
+    cdef:
+        int i, num_hexagons, max_uncompacted_num
+        h3api.H3Index *hex_set_array = NULL
+        h3api.H3Index *hex_uncompacted_set_array = NULL
+
+    res = _check_res(res)
+
+    if not h3_addresses:
+        return set()
+
+    try:
+        num_hexagons = len(h3_addresses)
+        hex_set_array = <h3api.H3Index *>stdlib.calloc(
+            num_hexagons,
+            sizeof(h3api.H3Index)
+        )
+        if not hex_set_array:
+            raise MemoryError()
+
+        for i, address in enumerate(h3_addresses):
+            hex_set_array[i] = int(address, 16)
+
+        max_uncompacted_num = h3api.maxUncompactSize(
+            hex_set_array,
+            num_hexagons,
+            res
+        )
+        if max_uncompacted_num < 0:
+            raise Exception(
+                'Failed to determine max uncompact '
+                'output size (bad resolution?)'
+            )
+
+        hex_uncompacted_set_array = <h3api.H3Index *>stdlib.calloc(
+            max_uncompacted_num,
+            sizeof(h3api.H3Index)
+        )
+        if not hex_uncompacted_set_array:
+            raise MemoryError()
+
+        ret_val = h3api.uncompact(
+            hex_set_array,
+            num_hexagons,
+            hex_uncompacted_set_array,
+            max_uncompacted_num,
+            res
+        )
+        if ret_val != 0:
+            raise Exception('Failed to uncompact (bad resolution?)')
+
+        return _hexagon_c_array_to_set(
+            hex_uncompacted_set_array,
+            max_uncompacted_num
+        )
+
+    finally:
+        if hex_set_array:
+            stdlib.free(hex_set_array)
+        if hex_uncompacted_set_array:
+            stdlib.free(hex_uncompacted_set_array)
+
+
+cdef h3api.GeoCoord _coord_array_to_geo_coord(
+    list coord_array,
+    bint geo_json_conformant=False
+) except *:
+    cdef:
+        double lat, lon
+
+    if len(coord_array) != 2:
+        raise ValueError("invalid coord array, expecting length 2.")
+
+    if geo_json_conformant:
+        lon = coord_array[0]
+        lat = coord_array[1]
+    else:
+        lat = coord_array[0]
+        lon = coord_array[1]
+
+    return h3api.GeoCoord(
+        degs_to_rads(_mercator_lat(lat)),
+        degs_to_rads(_mercator_lon(lon))
+    )
+
+
+cdef h3api.Geofence _polygon_array_to_geofence(
+    list polygon_array,
+    bint geo_json_conformant=False
+) except *:
+
+    cdef:
+        int i, num_verts
+        h3api.GeoCoord *geo_coord_array = NULL
+
+    try:
+        num_verts = len(polygon_array)
+        geo_coord_array = <h3api.GeoCoord *>stdlib.calloc(
+            num_verts,
+            sizeof(h3api.GeoCoord)
+        )
+        if not geo_coord_array:
+            raise MemoryError()
+
+        for i in range(num_verts):
+            geo_coord_array[i] = _coord_array_to_geo_coord(
+                polygon_array[i],
+                geo_json_conformant
+            )
+
+    except: # noqa
+        if geo_coord_array:
+            stdlib.free(geo_coord_array)
+        raise
+
+    else:
+        return h3api.Geofence(num_verts, geo_coord_array)
+
+
+cdef void _free_geofence(h3api.Geofence geofence):
+    if geofence.verts:
+        stdlib.free(geofence.verts)
+
+
+cdef h3api.GeoPolygon _geo_json_to_geo_polygon(
+    geo_json,
+    geo_json_conformant=False
+) except *:
+
+    cdef:
+        h3api.Geofence geofence
+        int num_holes, i
+        h3api.Geofence *holes = NULL
+
+    if geo_json['type'] != 'Polygon':
+        raise TypeError('Only Polygon GeoJSON supported')
+
+    try:
+        num_holes = len(geo_json['coordinates']) - 1
+        geofence = _polygon_array_to_geofence(
+            geo_json['coordinates'][0],
+            geo_json_conformant
+        )
+
+        if num_holes > 0:
+            holes = <h3api.Geofence *>stdlib.calloc(
+                num_holes, sizeof(h3api.Geofence)
+            )
+            if not holes:
+                raise MemoryError()
+            for i in range(num_holes):
+                holes[i] = _polygon_array_to_geofence(
+                    geo_json['coordinates'][i + 1],
+                    geo_json_conformant
+                )
+
+    except: # noqa
+        _free_geofence(geofence)
+        if holes:
+            for i in range(num_holes):
+                _free_geofence(holes[i])
+            stdlib.free(holes)
+        raise
+
+    else:
+        return h3api.GeoPolygon(geofence, num_holes, holes)
+
+
+def polyfill(geo_json, int res, bint geo_json_conformant=False):
+    """
+    Get hexagons for a given GeoJSON region
+
+    :param geo_json dict: A GeoJSON dictionary
+    :param res int: The hexagon resolution to use (0-15)
+    :param geo_json_conformant bool: Determines (lat, lng) vs (lng, lat)
+        ordering Default is false, which is (lat, lng) ordering, violating
+        the spec http://geojson.org/geojson-spec.html#id2 which is (lng, lat)
+
+    :returns: Set of hex addresses
+    """
+
+    cdef:
+        h3api.GeoPolygon geo_polygon = h3api.GeoPolygon(
+            h3api.Geofence(0, NULL),
+            0,
+            NULL
+        )
+        int array_len
+        h3api.H3Index *hex_array = NULL
+
+    res = _check_res(res)
+
+    try:
+        geo_polygon = _geo_json_to_geo_polygon(geo_json, geo_json_conformant)
+        array_len = h3api.maxPolyfillSize(&geo_polygon, res)
+        hex_array = <h3api.H3Index *>stdlib.calloc(
+            array_len, sizeof(h3api.H3Index)
+        )
+        if not hex_array:
+            raise MemoryError()
+        h3api.polyfill(&geo_polygon, res, hex_array)
+        return _hexagon_c_array_to_set(hex_array, array_len)
+
+    finally:
+        if hex_array:
+            stdlib.free(hex_array)
+
+        _free_geofence(geo_polygon.geofence)
+
+        if geo_polygon.holes:
+            for i in range(geo_polygon.numHoles):
+                _free_geofence(geo_polygon.holes[i])
+            stdlib.free(geo_polygon.holes)

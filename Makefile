@@ -11,7 +11,7 @@ local-install:
 .PHONY: local-install
 
 test: local-install
-	pytest --tb=line test/
+	pytest --verbose --tb=line -s test/
 
 clean-all:
 	-rm -r _skbuild CMakeFiles CMakeCache.txt
