@@ -850,23 +850,13 @@ class TestH3Core(unittest.TestCase):
 
     def test_hex_area(self):
         for i in range(0, 15):
-            self.assertTrue(isinstance(h3.hex_area(i), float))
-            self.assertTrue(isinstance(h3.hex_area(i, 'm^2'), float))
-
-        with pytest.raises(ValueError) as e_info:
-            h3.hex_area(5, 'ft^2')
-
-        self.assertTrue(isinstance(e_info.value, ValueError))
+            self.assertTrue(isinstance(h3.hex_area_km2(i), float))
+            self.assertTrue(isinstance(h3.hex_area_m2(i), float))
 
     def test_edge_length(self):
         for i in range(0, 15):
-            self.assertTrue(isinstance(h3.edge_length(i), float))
-            self.assertTrue(isinstance(h3.edge_length(i, 'm'), float))
-
-        with pytest.raises(ValueError) as e_info:
-            h3.edge_length(5, 'ft')
-
-        self.assertTrue(isinstance(e_info.value, ValueError))
+            self.assertTrue(isinstance(h3.edge_length_km(i), float))
+            self.assertTrue(isinstance(h3.edge_length_m(i), float))
 
     def test_num_hexagons(self):
         for i in range(0, 15):
@@ -966,4 +956,13 @@ class TestH3Core(unittest.TestCase):
         )
         self.assertEqual(
             5, h3.h3_distance('89283082993ffff', '89283082827ffff')
+        )
+
+    def test_res_zero_indices(self):
+        rez_zero_hexes = h3.get_res_zero_indexes()
+        self.assertEqual(
+            h3.num_hexagons(0), len(rez_zero_hexes)
+        )
+        self.assertTrue(
+            all(h3.h3_get_resolution(h) == 0 for h in rez_zero_hexes)
         )
