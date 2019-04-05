@@ -30,10 +30,6 @@ cdef inline double _mercator_lon(double lon):
     return lon - 360 if lon > 180 else lon
 
 
-def edge_length_km(int res):
-    return h3api.edgeLengthKm(_check_res(res))
-
-
 def h3_to_string(h3api.H3Index h3_int):
     return hex(h3_int)[2:]
 
@@ -673,9 +669,7 @@ def polyfill(geo_json, int res, bint geo_json_conformant=False):
 
     cdef:
         h3api.GeoPolygon geo_polygon = h3api.GeoPolygon(
-            h3api.Geofence(0, NULL),
-            0,
-            NULL
+            h3api.Geofence(0, NULL), 0, NULL
         )
         int array_len
         h3api.H3Index *hex_array = NULL
@@ -703,3 +697,46 @@ def polyfill(geo_json, int res, bint geo_json_conformant=False):
             for i in range(geo_polygon.numHoles):
                 _free_geofence(geo_polygon.holes[i])
             stdlib.free(geo_polygon.holes)
+
+
+cpdef double hex_area_km2(int res) except -1:
+    return h3api.hexAreaKm2(_check_res(res))
+
+
+cpdef double hex_area_m2(int res) except -1:
+    return h3api.hexAreaM2(_check_res(res))
+
+
+cpdef double edge_length_km(int res) except -1:
+    return h3api.edgeLengthKm(_check_res(res))
+
+
+cpdef double edge_length_m(int res) except -1:
+    return h3api.edgeLengthM(_check_res(res))
+
+
+cpdef stdint.int64_t num_hexagons(int res) except -1:
+    return h3api.numHexagons(_check_res(res))
+
+
+def get_res_zero_indexes():
+    cdef:
+        int idx_count
+        h3api.H3Index *h3_addresses = NULL
+
+    try:
+        idx_count = h3api.res0IndexCount()
+        h3_addresses = <h3api.H3Index *>stdlib.calloc(
+            idx_count, sizeof(h3api.H3Index)
+        )
+        if not h3_addresses:
+            raise MemoryError()
+        h3api.getRes0Indexes(h3_addresses)
+        return _hexagon_c_array_to_set(
+            h3_addresses, idx_count
+        )
+
+    finally:
+        if h3_addresses:
+            stdlib.free(h3_addresses)
+
