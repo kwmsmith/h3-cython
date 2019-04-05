@@ -268,7 +268,7 @@ class TestH3Core(unittest.TestCase):
                         [37.7076131999975672, -122.5123436999983966],
                         [37.7835871999971715, -122.5247187000021967],
                         [37.8151571999998453, -122.4798767000009008],
-                    ], 
+                    ],
                     [
                         [37.7869802, -122.4471197],
                         [37.7664102, -122.4590777],
@@ -424,15 +424,18 @@ class TestH3Core(unittest.TestCase):
         h3_addresses = []
         multi_polygon = h3.h3_set_to_multi_polygon(h3_addresses)
 
-        self.assertEqual(multi_polygon, [], 'no hexagons yields an empty array')
+        self.assertEqual(
+            multi_polygon, [], 'no hexagons yields an empty array'
+        )
 
     def test_h3_set_to_multi_polygon_single(self):
         h3_addresses = ['89283082837ffff']
         multi_polygon = h3.h3_set_to_multi_polygon(h3_addresses)
         vertices = h3.h3_to_geo_boundary(h3_addresses[0])
 
-        # We shift the expected circular list so that it starts from multi_polygon[0][0][0],
-        # since output starting from any vertex would be correct as long as it's in order.
+        # We shift the expected circular list so that it starts from
+        # multi_polygon[0][0][0], since output starting from any vertex would
+        # be correct as long as it's in order.
         expected_coords = self.shift_circular_list(
             multi_polygon[0][0][0],
             [
@@ -453,8 +456,9 @@ class TestH3Core(unittest.TestCase):
         multi_polygon = h3.h3_set_to_multi_polygon(h3_addresses, True)
         vertices = h3.h3_to_geo_boundary(h3_addresses[0], True)
 
-        # We shift the expected circular list so that it starts from multi_polygon[0][0][0],
-        # since output starting from any vertex would be correct as long as it's in order.
+        # We shift the expected circular list so that it starts from
+        # multi_polygon[0][0][0], since output starting from any vertex would
+        # be correct as long as it's in order.
         expected_coords = self.shift_circular_list(
             multi_polygon[0][0][0],
             [
@@ -479,13 +483,15 @@ class TestH3Core(unittest.TestCase):
         )
         self.assertEqual(
             multi_polygon[0], multi_polygon[-1],
-            'first coord should be the same as last coord according to geojson format'
+            'first coord should be the same as last coord according '
+            'to geojson format'
         )
         self.assertEqual(
             multi_polygon[0][0][0], [-122.42778275313199, 37.77598951883773],
             'the coord should be (lng, lat) according to geojson format'
         )
-        # Discard last coord for testing below, since last coord is the same as the first one
+        # Discard last coord for testing below, since last coord is the same as
+        # the first one
         multi_polygon[0][0].pop()
 
         self.assertEqual(multi_polygon, expected, 'outline matches expected')
@@ -498,8 +504,9 @@ class TestH3Core(unittest.TestCase):
         vertices0 = h3.h3_to_geo_boundary(h3_addresses[0])
         vertices1 = h3.h3_to_geo_boundary(h3_addresses[1])
 
-        # We shift the expected circular list so that it starts from multi_polygon[0][0][0],
-        # since output starting from any vertex would be correct as long as it's in order.
+        # We shift the expected circular list so that it starts from
+        # multi_polygon[0][0][0], since output starting from any vertex would
+        # be correct as long as it's in order.
         expected_coords = self.shift_circular_list(
             multi_polygon[0][0][0],
             [
@@ -685,7 +692,7 @@ class TestH3Core(unittest.TestCase):
 
     def test_hex_ring_pentagon(self):
         try:
-            hexagons = h3.hex_ring('821c07fffffffff', 1)
+            h3.hex_ring('821c07fffffffff', 1)
         except Exception as err:
             self.assertEqual(
                 str(err),
@@ -703,7 +710,7 @@ class TestH3Core(unittest.TestCase):
                         [37.7198061999978478, -122.3544736999993603],
                         [37.7076131999975672, -122.5123436999983966],
                         [37.7835871999971715, -122.5247187000021967],
-                        [37.8151571999998453, -122.4798767000009008] 
+                        [37.8151571999998453, -122.4798767000009008]
                     ]
                 ]
             }, 9
@@ -908,7 +915,9 @@ class TestH3Core(unittest.TestCase):
             self.assertTrue(isinstance(h3.num_hexagons(i), int))
 
     def test_h3_get_base_cell(self):
-        self.assertTrue(isinstance(h3.h3_get_base_cell('8928308280fffff'), int))
+        self.assertTrue(
+            isinstance(h3.h3_get_base_cell('8928308280fffff'), int)
+        )
 
     def test_h3_is_res_class_iiiIII(self):
         self.assertTrue(h3.h3_is_res_class_iii('8928308280fffff'))
