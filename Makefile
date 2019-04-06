@@ -1,11 +1,9 @@
 DOCKER_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 
-darwin:
-	-rm -r test/__pycache__
+darwin: clean-cache
 	python setup.py bdist_wheel
 
-linux:
-	-rm -r test/__pycache__
+linux: clean-cache
 	docker run --rm -v `pwd`:/io ${DOCKER_IMAGE} /io/build-wheels.sh 
 
 local-install:
@@ -13,10 +11,12 @@ local-install:
 .PHONY: local-install
 
 test: local-install
-	pytest --verbose --tb=line -s test/
+	pytest test/test_h3.py
+	# pytest --verbose --tb=line -s test/
 
 clean-cache:
-	find . -iname '__pycache__'
+	find . -iname '__pycache__' -exec rm -r '{}' +
+.PHONY: clean-cache
 
 clean-all:
 	-rm -r _skbuild CMakeFiles CMakeCache.txt
