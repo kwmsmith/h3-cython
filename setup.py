@@ -24,5 +24,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
+        "Topic :: Scientific/Engineering :: GIS",
     ],
 )
